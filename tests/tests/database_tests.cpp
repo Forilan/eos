@@ -8,6 +8,12 @@
 
 #include <boost/test/unit_test.hpp>
 
+#ifdef NON_VALIDATING_TEST
+#define TESTER tester
+#else
+#define TESTER validating_tester
+#endif
+
 
 using namespace eosio::chain;
 using namespace eosio::testing;
@@ -18,7 +24,7 @@ BOOST_AUTO_TEST_SUITE(database_tests)
    // Simple tests of undo infrastructure
    BOOST_AUTO_TEST_CASE(undo_test) {
       try {
-         tester test;
+         TESTER test;
          auto &db = test.control->get_mutable_database();
 
          auto ses = db.start_undo_session(true);
@@ -44,7 +50,7 @@ BOOST_AUTO_TEST_SUITE(database_tests)
    // Test the block fetching methods on database, get_block_id_for_num, fetch_bock_by_id, and fetch_block_by_number
    BOOST_AUTO_TEST_CASE(get_blocks) {
       try {
-         tester test;
+         TESTER test;
          vector<block_id_type> block_ids;
 
          const uint32_t num_of_blocks_to_prod = 200;
@@ -58,12 +64,17 @@ BOOST_AUTO_TEST_SUITE(database_tests)
          }
 
          // Utility function to check expected irreversible block
-         auto calc_exp_last_irr_block_num = [&](uint32_t head_block_num) {
+         auto calc_exp_last_irr_block_num = [&](uint32_t head_block_num) -> uint32_t {
             const global_property_object &gpo = test.control->get_global_properties();
             const auto producers_size = gpo.active_producers.producers.size();
-            const auto min_producers = EOS_PERCENT(producers_size, config::irreversible_threshold_percent);
-            return head_block_num - (((min_producers - 1) * config::producer_repititions) + 1 +
-                   (head_block_num % config::producer_repititions));
+            const auto max_reversible_rounds = EOS_PERCENT(producers_size, config::percent_100 - config::irreversible_threshold_percent);
+            if( max_reversible_rounds == 0) {
+               return head_block_num - 1;
+            } else {
+               const auto current_round = head_block_num / config::producer_repetitions;
+               const auto irreversible_round = current_round - max_reversible_rounds;
+               return (irreversible_round + 1) * config::producer_repetitions - 1;
+            }
          };
 
          // Check the last irreversible block number is set correctly

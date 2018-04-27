@@ -25,7 +25,7 @@
         {"name":"type", "type":"string"},
         {"name":"data", "type":"uint8[]"},
         {"name":"memo", "type":"string"},
-        {"name":"confidence", "type":"uint8"},
+        {"name":"confidence", "type":"uint8"}
      ]
     },{
      "name": "certprop",
@@ -63,29 +63,25 @@
         {"name":"creator", "type":"account_name"}
       ]
     },{
-      "name": "trustrow",
-      "base": "",
-      "fields": [
-        {"name":"account", "type":"account_name"},
-        {"name":"trusted", "type":"uint8"}
-      ]
-    },{
       "name": "accountrow",
       "base": "",
       "fields": [
-        {"name":"account", "type":"account_name"}
+        {"name":"identity", "type":"uint64"}
       ]
     }
   ],
   "actions": [{
       "name": "create",
-      "type": "create"
+      "type": "create",
+      "ricardian_contract": ""
     },{
       "name": "certprop",
-      "type": "certprop"
+      "type": "certprop",
+      "ricardian_contract": ""
     },{
       "name": "settrust",
-      "type": "settrust"
+      "type": "settrust",
+      "ricardian_contract": ""
     }
   ],
   "tables": [{
@@ -110,10 +106,11 @@
       "key_types": [ "uint64" ]
     },{
       "name": "trust",
-      "type": "trustrow",
+      "type": "account_name",
       "index_type": "i64",
       "key_names" : [ "account" ],
       "key_types": [ "account_name" ]
     }
-  ]
+  ],
+  "ricardian_clauses": []
 }

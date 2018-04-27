@@ -33,6 +33,7 @@ namespace eosio { namespace chain {
 
       shared_producer_schedule_type& operator=( const producer_schedule_type& a ) {
          version = a.version;
+         producers.clear();
          producers.reserve( a.producers.size() );
          for( const auto& p : a.producers )
             producers.push_back(p);
@@ -41,6 +42,7 @@ namespace eosio { namespace chain {
 
       operator producer_schedule_type()const {
          producer_schedule_type result;
+         result.version = version;
          result.producers.reserve(producers.size());
          for( const auto& p : producers )
             result.producers.push_back(p);
@@ -55,6 +57,7 @@ namespace eosio { namespace chain {
    inline bool operator == ( const producer_schedule_type& a, const producer_schedule_type& b ) 
    {
       if( a.version != b.version ) return false;
+      if ( a.producers.size() != b.producers.size() ) return false;
       for( uint32_t i = 0; i < a.producers.size(); ++i )
          if( a.producers[i] != b.producers[i] ) return false;
       return true;

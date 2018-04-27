@@ -16,55 +16,32 @@
 namespace eosio { namespace chain { namespace contracts {
 
 struct genesis_state_type {
-   struct initial_account_type {
-      initial_account_type(const string& name = string(),
-                           uint64_t staking_bal = 0,
-                           uint64_t liquid_bal = 0,
-                           const public_key_type& owner_key = public_key_type(),
-                           const public_key_type& active_key = public_key_type())
-         : name(name), staking_balance(staking_bal), liquid_balance(liquid_bal),
-           owner_key(owner_key),
-           active_key(active_key == public_key_type()? owner_key : active_key)
-      {}
-      string          name;
-      asset           staking_balance;
-      asset           liquid_balance;
-      public_key_type owner_key;
-      public_key_type active_key;
-   };
-   struct initial_producer_type {
-      initial_producer_type(const string& name = string(),
-                            const public_key_type& signing_key = public_key_type())
-         : owner_name(name), block_signing_key(signing_key)
-      {}
-      /// Must correspond to one of the initial accounts
-      string              owner_name;
-      public_key_type     block_signing_key;
-   };
-
    chain_config   initial_configuration = {
-      .producer_pay                   = config::default_elected_pay,
-      .target_block_size              = config::default_target_block_size,
-      .max_block_size                 = config::default_max_block_size,
-      .target_block_acts_per_scope    = config::default_target_block_acts_per_scope,
-      .max_block_acts_per_scope       = config::default_max_block_acts_per_scope,
-      .target_block_acts              = config::default_target_block_acts,
-      .max_block_acts                 = config::default_max_block_acts,
-      .real_threads                   = 0, // TODO: unused?
-      .max_storage_size               = config::default_max_storage_size,
+      .base_per_transaction_net_usage = config::default_base_per_transaction_net_usage,
+      .base_per_transaction_cpu_usage = config::default_base_per_transaction_cpu_usage,
+      .base_per_action_cpu_usage      = config::default_base_per_action_cpu_usage,
+      .base_setcode_cpu_usage         = config::default_base_setcode_cpu_usage,
+      .per_signature_cpu_usage        = config::default_per_signature_cpu_usage,
+      .per_lock_net_usage             = config::default_per_lock_net_usage,
+      .context_free_discount_cpu_usage_num      = config::default_context_free_discount_cpu_usage_num,
+      .context_free_discount_cpu_usage_den      = config::default_context_free_discount_cpu_usage_den,
+      .max_transaction_cpu_usage      = config::default_max_transaction_cpu_usage,
+      .max_transaction_net_usage      = config::default_max_transaction_net_usage,
+      .max_block_cpu_usage            = config::default_max_block_cpu_usage,
+      .target_block_cpu_usage_pct     = config::default_target_block_cpu_usage_pct,
+      .max_block_net_usage            = config::default_max_block_net_usage,
+      .target_block_net_usage_pct     = config::default_target_block_net_usage_pct,
       .max_transaction_lifetime       = config::default_max_trx_lifetime,
-      .max_authority_depth            = config::default_max_auth_depth,
       .max_transaction_exec_time      = 0, // TODO: unused?
+      .max_authority_depth            = config::default_max_auth_depth,
       .max_inline_depth               = config::default_max_inline_depth,
       .max_inline_action_size         = config::default_max_inline_action_size,
-      .max_generated_transaction_size = config::default_max_gen_trx_size
+      .max_generated_transaction_count = config::default_max_gen_trx_count,
+      .max_transaction_delay          = config::default_max_trx_delay
    };
 
-   time_point                               initial_timestamp;
-   public_key_type                          initial_key;
-
-   vector<initial_account_type>             initial_accounts;
-   vector<initial_producer_type>            initial_producers;
+   time_point                               initial_timestamp = fc::time_point::from_iso_string( "2018-03-01T12:00:00" );;
+   public_key_type                          initial_key = fc::variant("EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV").as<public_key_type>();
 
    /**
     * Temporary, will be moved elsewhere.
@@ -81,11 +58,6 @@ struct genesis_state_type {
 
 } } } // namespace eosio::contracts
 
-FC_REFLECT(eosio::chain::contracts::genesis_state_type::initial_account_type,
-           (name)(staking_balance)(liquid_balance)(owner_key)(active_key))
-
-FC_REFLECT(eosio::chain::contracts::genesis_state_type::initial_producer_type, (owner_name)(block_signing_key))
 
 FC_REFLECT(eosio::chain::contracts::genesis_state_type,
-           (initial_timestamp)(initial_key)(initial_configuration)(initial_accounts)
-           (initial_producers)(initial_chain_id))
+           (initial_timestamp)(initial_key)(initial_configuration)(initial_chain_id))

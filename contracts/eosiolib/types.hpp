@@ -4,8 +4,10 @@
  */
 #pragma once
 #include <eosiolib/types.h>
+#include <functional>
+#include <tuple>
 
-namespace  eosio {
+namespace eosio {
 
    /**
     *  @brief Converts a base32 symbol into its binary representation, used by string_to_name()
@@ -13,7 +15,7 @@ namespace  eosio {
     *  @details Converts a base32 symbol into its binary representation, used by string_to_name()
     *  @ingroup types
     */
-   static constexpr char char_to_symbol( char c ) {
+   static constexpr  char char_to_symbol( char c ) {
       if( c >= 'a' && c <= 'z' )
          return (c - 'a') + 6;
       if( c >= '1' && c <= '5' )
@@ -23,7 +25,7 @@ namespace  eosio {
 
 
    /**
-    *  @brief Converts a base32 string to a uint64_t. 
+    *  @brief Converts a base32 string to a uint64_t.
     *
     *  @details Converts a base32 string to a uint64_t. This is a constexpr so that
     *  this method can be used in template arguments as well.
@@ -39,7 +41,7 @@ namespace  eosio {
 
       for( uint32_t i = 0; i <= 12; ++i ) {
          uint64_t c = 0;
-         if( i < len && i <= 12 ) c = char_to_symbol( str[i] );
+         if( i < len && i <= 12 ) c = uint64_t(char_to_symbol( str[i] ));
 
          if( i < 12 ) {
             c &= 0x1f;
@@ -71,37 +73,31 @@ namespace  eosio {
     *  @{
     */
    struct name {
-      name( uint64_t v = 0 ): value(v) {}
       operator uint64_t()const { return value; }
 
       friend bool operator==( const name& a, const name& b ) { return a.value == b.value; }
       account_name value = 0;
+   };
+   /// @}
 
-      template<typename DataStream>
-      friend DataStream& operator << ( DataStream& ds, const name& v ){
-         return ds << v.value;
-      }
-      template<typename DataStream>
-      friend DataStream& operator >> ( DataStream& ds, name& v ){
-         return ds >> v.value;
+} // namespace eosio
+
+namespace std {
+   /**
+    * @brief provide less for checksum256
+    */
+   template<>
+   struct less<checksum256> : binary_function<checksum256, checksum256, bool> {
+      bool operator()( const checksum256& lhs, const checksum256& rhs ) const {
+         return memcmp(&lhs, &rhs, sizeof(lhs)) < 0;
       }
    };
 
-   /// @}
+} // namespace std
 
-   /**
-    * @ingroup types
-    *
-    * @{
-    */
-   template<typename T> struct remove_reference           { typedef T type; };
-   template<typename T> struct remove_reference<T&>       { typedef T type; };
-   template<typename T> struct remove_reference<const T&> { typedef T type; };
-   ///@}
-
-   typedef decltype(nullptr) nullptr_t;
-
-   struct true_type  { enum _value { value = 1 }; };
-   struct false_type { enum _value { value = 0 }; };
-
-} // namespace eos
+/**
+ * Provide == for checksum256 in global namespace
+ */
+bool operator==(const checksum256& lhs, const checksum256& rhs) {
+   return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
+}

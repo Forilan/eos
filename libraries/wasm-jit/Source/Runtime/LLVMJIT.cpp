@@ -739,7 +739,7 @@ namespace LLVMJIT
 
 		return reinterpret_cast<InvokeFunctionPointer>(jitUnit->symbol->baseAddress);
 	}
-	
+
 	void init()
 	{
 		llvm::InitializeNativeTarget();

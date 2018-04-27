@@ -15,26 +15,20 @@ namespace eosio { namespace chain {
       uint32_t        block_num() const { return num_from_id(previous) + 1; }
       static uint32_t num_from_id(const block_id_type& id);
 
-      block_id_type                 previous;
-      block_timestamp_type          timestamp;
+      block_id_type                    previous;
+      block_timestamp_type             timestamp;
 
-      checksum_type                 transaction_mroot; /// mroot of cycles_summary
-      checksum_type                 action_mroot;
-      checksum_type                 block_mroot;
+      checksum256_type                 transaction_mroot; /// mroot of cycles_summary
+      checksum256_type                 action_mroot;
+      checksum256_type                 block_mroot;
 
-      account_name                  producer;
-      /**
-       * The changes in the round of producers after this block
-       *
-       * Must be stored with keys *and* values sorted, thus this is a valid RoundChanges:
-       * [["A", "X"],
-       *  ["B", "Y"]]
-       * ... whereas this is not:
-       * [["A", "Y"],
-       *  ["B", "X"]]
-       * Even though the above examples are semantically equivalent (replace A and B with X and Y), only the first is
-       * legal.
+      account_name                     producer;
+
+      /** The producer schedule version that should validate this block, this is used to
+       * indicate that the prior block which included new_producers->version has been marked
+       * irreversible and that it the new producer schedule takes effect this block.
        */
+      uint32_t                          schedule_version = 0;
       optional<producer_schedule_type>  new_producers;
    };
 
@@ -64,6 +58,10 @@ namespace eosio { namespace chain {
       vector<shard_lock>            read_locks;
       vector<shard_lock>            write_locks;
       vector<transaction_receipt>   transactions; /// new or generated transactions
+
+      bool empty() const {
+         return read_locks.empty() && write_locks.empty() && transactions.empty();
+      }
    };
 
    typedef vector<shard_summary>    cycle;
@@ -81,26 +79,25 @@ namespace eosio { namespace chain {
     *
     *  The primary purpose of a block is to define the order in which messages are processed.
     *
-    *  The secodnary purpose of a block is certify that the messages are valid according to 
+    *  The secodnary purpose of a block is certify that the messages are valid according to
     *  a group of 3rd party validators (producers).
     *
     *  The next purpose of a block is to enable light-weight proofs that a transaction occured
     *  and was considered valid.
     *
     *  The next purpose is to enable code to generate messages that are certified by the
-    *  producers to be authorized. 
+    *  producers to be authorized.
     *
     *  A block is therefore defined by the ordered set of executed and generated transactions,
     *  and the merkle proof is over set of messages delivered as a result of executing the
-    *  transactions. 
+    *  transactions.
     *
     *  A message is defined by { receiver, code, function, permission, data }, the merkle
     *  tree of a block should be generated over a set of message IDs rather than a set of
-    *  transaction ids. 
+    *  transaction ids.
     */
    struct signed_block_summary : public signed_block_header {
-      vector<region_summary> regions;
-      checksum_type          calculate_transaction_mroot()const;
+      vector<region_summary>    regions;
    };
 
    /**
@@ -109,52 +106,25 @@ namespace eosio { namespace chain {
     * what would be logged to disk to enable the regeneration of blockchain state.
     *
     * The transactions are grouped to mirror the cycles in block_summary, generated
-    * transactions are not included.  
+    * transactions are not included.
     */
    struct signed_block : public signed_block_summary {
-      digest_type                  calculate_transaction_merkle_root()const;
-      vector<packed_transaction>   input_transactions; /// this is loaded and indexed into map<id,trx> that is referenced by summary
-   };
-
-   struct shard_trace {
-      digest_type                   shard_root;
-      vector<transaction_trace>     transaction_traces;
-
-      void append( transaction_trace&& res ) {
-         transaction_traces.emplace_back(move(res));
-      }
-
-      void append( const transaction_trace& res ) {
-         transaction_traces.emplace_back(res);
-      }
-
-      void calculate_root();
-   };
-
-   struct cycle_trace {
-      vector<shard_trace>           shard_traces;
-   };
-
-   struct region_trace {
-      vector<cycle_trace>           cycle_traces;
-   };
-
-   struct block_trace {
-      explicit block_trace(const signed_block& s)
-      :block(s)
+      signed_block () = default;
+      signed_block (const signed_block& ) = default;
+      signed_block (const signed_block_summary& base)
+         :signed_block_summary (base),
+          input_transactions()
       {}
 
-      const signed_block&     block;
-      vector<region_trace>    region_traces;
-      digest_type             calculate_action_merkle_root()const;
+      /// this is loaded and indexed into map<id,trx> that is referenced by summary; order doesn't matter
+      vector<packed_transaction>   input_transactions;
    };
-
 
 } } // eosio::chain
 
 FC_REFLECT(eosio::chain::block_header, (previous)(timestamp)
            (transaction_mroot)(action_mroot)(block_mroot)
-           (producer)(new_producers))
+           (producer)(schedule_version)(new_producers))
 
 FC_REFLECT_DERIVED(eosio::chain::signed_block_header, (eosio::chain::block_header), (producer_signature))
 FC_REFLECT( eosio::chain::shard_lock, (account)(scope))
@@ -162,7 +132,3 @@ FC_REFLECT( eosio::chain::shard_summary, (read_locks)(write_locks)(transactions)
 FC_REFLECT( eosio::chain::region_summary, (region)(cycles_summary) )
 FC_REFLECT_DERIVED(eosio::chain::signed_block_summary, (eosio::chain::signed_block_header), (regions))
 FC_REFLECT_DERIVED(eosio::chain::signed_block, (eosio::chain::signed_block_summary), (input_transactions))
-FC_REFLECT( eosio::chain::shard_trace, (shard_root)(transaction_traces))
-FC_REFLECT( eosio::chain::cycle_trace, (shard_traces))
-FC_REFLECT( eosio::chain::region_trace, (cycle_traces))
-FC_REFLECT( eosio::chain::block_trace, (region_traces))
